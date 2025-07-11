@@ -25,18 +25,9 @@ public class OrderController {
     }
 
     @GetMapping("/place/{productId}/{quantity}")
-    public ResponseEntity<String> placeOrder(@PathVariable int productId, @PathVariable int quantity){
-        try {
-            String response = service.placeOrder(productId, quantity);
-            return ResponseEntity.ok(response);
-        }catch (Exception e) {
-            Product fallback=service.fallbackProduct(productId, e);
-            return ResponseEntity.ok("Fallback used due to failure.\n" +
-                    "Order placed {\nproduct: " + fallback.getName() +
-                    ",\ntotal amount: $0.0,\nQuantity: " + quantity + "\n}");
-
-        }
-
+    public ResponseEntity<String> placeOrder(@PathVariable int productId, @PathVariable int quantity) {
+        String response = service.placeOrder(productId, quantity);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping()

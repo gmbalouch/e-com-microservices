@@ -1,6 +1,8 @@
 package org.ecom.service;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import io.github.resilience4j.retry.annotation.Retry;
 import org.ecom.dto.Product;
 import org.ecom.entity.Order;
 import org.ecom.repository.OrderRepository;
@@ -12,23 +14,27 @@ import java.util.List;
 
 @Service
 public class OrderService {
+
     @Autowired
     private OrderRepository repo;
 
     @Autowired
     private RestTemplate restTemplate;
 
-
-    @CircuitBreaker(name = "productService", fallbackMethod = "fallbackProduct")
-    public Product getProductById(int productId){
-        String url="http://localhost:8080/products/"+productId;
-        return restTemplate.getForObject(url, Product.class);
-    }
+    @Autowired
+    private ProductClient productClient;
 
     public String placeOrder(int productId, int quantity){
-        Product product=getProductById(productId);
 
-        if(product==null) return "Product not found;";
+        Product product=productClient.getProductById(productId);
+
+        if(product == null)
+            return "Product not found with product id"+ productId;
+
+        if ("Fallback Product".equals(product.getName()))
+            return "Order failed,\nProduct service is down. Showing dummy product: " + product.getName();
+
+
         double total=product.getPrice()*quantity;
 
         Order order= new Order();
@@ -51,11 +57,4 @@ public class OrderService {
         return repo.findById(id).orElse(null);
     }
 
-    public Product fallbackProduct(int productId, Throwable ex) {
-        Product dummy = new Product();
-        dummy.setId(0);
-        dummy.setName("Default Product (Service Down)");
-        dummy.setPrice(0.0);
-        return dummy;
-    }
 }

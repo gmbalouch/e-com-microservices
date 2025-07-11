@@ -7,12 +7,53 @@ management:
     health:
       show-details: always
 
+  metrics:
+    enable:
+      resilience4j.ratelimiter.calls: true
 
 spring:
   application:
     name: order-service
   config:
     import: optional:configserver:http://localhost:8888/
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      productService:
+        failureRateThreshold: 50
+        minimumNumberOfCalls: 5
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5s
+        permittedNumberOfCallsInHalfOpenState: 3
+        record-exceptions:
+          - org.springframework.web.client.ResourceAccessException
+          - java.io.IOException
+
+  retry:
+    instances:
+      productServiceRetry:
+        max-attempts: 3
+        wait-duration: 1s
+        retry-exceptions:
+          - org.springframework.web.client.ResourceAccessException
+
+
+  resilience4j:
+    ratelimiter:
+      instances:
+        productServiceRateLimiter:
+          limit-for-period: 2           # Number of allowed calls per refresh period
+          limit-refresh-period: 5s      # Time window for limiting
+          timeout-duration: 0
+
+
+logging:
+  level:
+    io.github.resilience4j.retry: DEBUG
+    io.github.resilience4j.circuitbreaker: DEBUG
+    io.github.resilience4j.ratelimiter: DEBUG
+
 
 eureka:
   client:
